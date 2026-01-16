@@ -29,18 +29,18 @@ func main() {
 	mux := http.NewServeMux()
 	apiCgf := apiConfig{}
 
-	mux.Handle("/app", apiCgf.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./")))))
-	mux.Handle("/app/assets/", apiCgf.middlewareMetricsInc(http.StripPrefix("/app/assets/", http.FileServer(http.Dir("./assets/")))))
+	mux.Handle("GET /app", apiCgf.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./")))))
+	mux.Handle("GET /app/assets/", apiCgf.middlewareMetricsInc(http.StripPrefix("/app/assets/", http.FileServer(http.Dir("./assets/")))))
 
-	mux.HandleFunc("GET /healthz", handlers.GETHealthzHandler)
+	mux.HandleFunc("GET /api/healthz", handlers.GETHealthzHandler)
 
-	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/metrics", func(w http.ResponseWriter, r *http.Request) {
 		hits := apiCgf.getFileserverHits()
 		text := fmt.Sprintf("Hits: %v", hits)
 
 		w.Write([]byte(text))
 	})
-	mux.HandleFunc("GET /reset", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/reset", func(w http.ResponseWriter, r *http.Request) {
 		apiCgf.fileserverHits.Store(0)
 
 		w.WriteHeader(http.StatusOK)
