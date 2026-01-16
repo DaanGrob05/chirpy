@@ -4,24 +4,47 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 
 	"example.com/chirpy/handlers"
 )
 
-type homeHandler struct{}
+type apiConfig struct {
+	fileserverHits atomic.Int32
+}
 
-func (homeHandler) ServeHTTP(http.ResponseWriter, *http.Request) {
-	fmt.Println("Serving index.html")
-	http.FileServer(http.Dir("index.html"))
+func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(cfg.fileserverHits.Load())
+		cfg.fileserverHits.Add(1)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (cfg apiConfig) getFileserverHits() int32 {
+	return cfg.fileserverHits.Load()
 }
 
 func main() {
 	mux := http.NewServeMux()
+	apiCgf := apiConfig{}
 
-	mux.Handle("/app", http.StripPrefix("/app", http.FileServer(http.Dir("./"))))
-	mux.Handle("/app/assets/", http.StripPrefix("/app/assets/", http.FileServer(http.Dir("./assets/"))))
+	mux.Handle("/app", apiCgf.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./")))))
+	mux.Handle("/app/assets/", apiCgf.middlewareMetricsInc(http.StripPrefix("/app/assets/", http.FileServer(http.Dir("./assets/")))))
 
 	mux.HandleFunc("GET /healthz", handlers.GETHealthzHandler)
+
+	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
+		hits := apiCgf.getFileserverHits()
+		text := fmt.Sprintf("Hits: %v", hits)
+
+		w.Write([]byte(text))
+	})
+	mux.HandleFunc("GET /reset", func(w http.ResponseWriter, r *http.Request) {
+		apiCgf.fileserverHits.Store(0)
+
+		w.WriteHeader(http.StatusOK)
+	})
 
 	server := http.Server{
 		Handler: mux,
