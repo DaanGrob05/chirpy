@@ -1,7 +1,6 @@
 package apiconfig
 
 import (
-	"fmt"
 	"net/http"
 	"sync/atomic"
 
@@ -22,25 +21,4 @@ func (cfg *ApiConfig) MiddlewareMetricsInc(next http.Handler) http.Handler {
 
 func (cfg *ApiConfig) GetFileserverHits() int32 {
 	return cfg.FileserverHits.Load()
-}
-
-func (cfg *ApiConfig) ServerMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	hits := cfg.GetFileserverHits()
-	text := fmt.Sprintf(`
-			<html>
-				<body>
-					<h1>Welcome, Chirpy Admin</h1>
-					<p>Chirpy has been visited %d times!</p>
-				</body>
-			</html>
-		`, hits)
-
-	w.Header().Add("Content-Type", "text/html")
-	w.Write([]byte(text))
-}
-
-func (cfg *ApiConfig) ServerMetricsResetHandler(w http.ResponseWriter, r *http.Request) {
-	cfg.FileserverHits.Store(0)
-
-	w.WriteHeader(http.StatusOK)
 }
