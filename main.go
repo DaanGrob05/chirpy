@@ -32,6 +32,7 @@ func main() {
 	mux.Handle("GET /app/assets/", apiCgf.middlewareMetricsInc(http.StripPrefix("/app/assets/", http.FileServer(http.Dir("./assets/")))))
 
 	mux.HandleFunc("GET /api/healthz", handlers.GETHealthzHandler)
+	mux.HandleFunc("POST /api/validate_chirp", handlers.POSTValidateChirp)
 
 	mux.HandleFunc("GET /admin/metrics", func(w http.ResponseWriter, r *http.Request) {
 		hits := apiCgf.getFileserverHits()
