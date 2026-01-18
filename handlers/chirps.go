@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	apiconfig "example.com/chirpy/api_config"
 	"example.com/chirpy/internal/database"
 	"example.com/chirpy/logging"
+	"github.com/google/uuid"
 )
 
 func CreateChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
@@ -53,6 +55,39 @@ func GetChirpsHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		if err != nil {
 			returnError(err, w, http.StatusInternalServerError)
 			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonData)
+	}
+}
+
+func GetOneChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logging.Log("Getting One Chirp")
+
+		idString := r.PathValue("chirpID")
+		if idString == "" {
+			returnError(errors.New("Incorrect or empty id value."), w, http.StatusBadRequest)
+			return
+		}
+
+		id, err := uuid.Parse(idString)
+		if err != nil {
+			returnError(err, w, http.StatusNotFound)
+			return
+		}
+
+		chirp, err := cfg.DbQueries.GetOneChirp(r.Context(), id)
+		if err != nil {
+			returnError(err, w, http.StatusNotFound)
+			return
+		}
+
+		jsonData, err := json.Marshal(chirp)
+		if err != nil {
+			returnError(err, w, http.StatusNotFound)
 		}
 
 		w.WriteHeader(http.StatusOK)
