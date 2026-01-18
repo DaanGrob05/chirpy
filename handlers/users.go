@@ -2,11 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
 	apiconfig "example.com/chirpy/api_config"
+	"example.com/chirpy/logging"
 )
 
 func CreateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
@@ -15,9 +14,7 @@ func CreateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			Email string `json:"email"`
 		}
 
-		if os.Getenv("LOGGING") == "true" {
-			fmt.Println("Creating User")
-		}
+		logging.Log("Creating User")
 
 		decoder := json.NewDecoder(r.Body)
 		params := parameters{}
