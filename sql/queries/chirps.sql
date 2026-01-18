@@ -4,3 +4,11 @@ INSERT INTO chirps (body, user_id)
 RETURNING
   *;
 
+-- name: GetChirps :many
+SELECT
+  *
+FROM
+  chirps
+ORDER BY
+  created_at ASC;
+
