@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	apiconfig "example.com/chirpy/api_config"
 )
@@ -14,7 +15,9 @@ func CreateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			Email string `json:"email"`
 		}
 
-		fmt.Println("Creating User")
+		if os.Getenv("LOGGING") == "true" {
+			fmt.Println("Creating User")
+		}
 
 		decoder := json.NewDecoder(r.Body)
 		params := parameters{}

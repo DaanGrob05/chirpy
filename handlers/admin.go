@@ -30,7 +30,6 @@ func ResetHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 
 		err := cfg.DbQueries.ResetUsers(r.Context())
 		if err != nil {
-			fmt.Println(err)
 			returnError(err, w, http.StatusInternalServerError)
 			return
 		}

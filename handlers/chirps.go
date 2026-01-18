@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	apiconfig "example.com/chirpy/api_config"
 	"example.com/chirpy/internal/database"
@@ -11,7 +12,9 @@ import (
 
 func CreateChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Creating Chirp")
+		if os.Getenv("LOGGING") == "true" {
+			fmt.Println("Creating Chirp")
+		}
 
 		decoder := json.NewDecoder(r.Body)
 		createParams := database.CreateChirpParams{}
@@ -19,8 +22,6 @@ func CreateChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		if err != nil {
 			returnError(err, w, http.StatusBadRequest)
 		}
-
-		fmt.Println(createParams)
 
 		createdChirp, err := cfg.DbQueries.CreateChirp(r.Context(), createParams)
 		if err != nil {
