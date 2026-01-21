@@ -2,17 +2,20 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
+
+	"example.com/chirpy/logging"
 )
 
 func returnError(err error, w http.ResponseWriter, httpCode int) {
+	logging.Log(fmt.Sprintf("Error: %v", err.Error()))
 	type errorBody struct {
 		Error string `json:"error"`
 	}
 
 	body := errorBody{
-		Error: "Something went wrong. Please try again.",
+		Error: err.Error(),
 	}
 
 	data, marshallErr := json.Marshal(body)
@@ -21,7 +24,6 @@ func returnError(err error, w http.ResponseWriter, httpCode int) {
 		return
 	}
 
-	log.Printf("Error occurred while decoding parameters: %v", err)
 	w.WriteHeader(httpCode)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
