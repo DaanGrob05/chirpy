@@ -3,12 +3,15 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	apiconfig "example.com/chirpy/api_config"
 	"example.com/chirpy/internal/auth"
 	"example.com/chirpy/internal/database"
 	"example.com/chirpy/logging"
+	"github.com/google/uuid"
 )
 
 func CreateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
@@ -25,6 +28,11 @@ func CreateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		err := decoder.Decode(&params)
 		if err != nil {
 			returnError(err, w, http.StatusBadRequest)
+			return
+		}
+
+		if params.Email == "" || params.Password == "" {
+			returnError(errors.New("Email and password are required."), w, http.StatusBadRequest)
 			return
 		}
 
@@ -62,8 +70,17 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		logging.Log("Logging In")
 
 		type parameters struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
+			Email            string `json:"email"`
+			Password         string `json:"password"`
+			ExpiresInSeconds int    `json:"expires_in_seconds"`
+		}
+
+		type exportBody struct {
+			ID        uuid.UUID `json:"id"`
+			CreatedAt time.Time `json:"created_at"`
+			UpdatedAt time.Time `json:"updated_at"`
+			Email     string    `json:"email"`
+			Token     string    `json:"token"`
 		}
 
 		decoder := json.NewDecoder(r.Body)
@@ -86,7 +103,31 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		jsonData, err := json.Marshal(user)
+		if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds >= 3600 {
+			params.ExpiresInSeconds = 3600
+		}
+
+		duration, err := time.ParseDuration(fmt.Sprintf("%vs", params.ExpiresInSeconds))
+		if err != nil {
+			returnError(err, w, http.StatusInternalServerError)
+			return
+		}
+
+		token, err := auth.MakeJWT(user.ID, cfg.Secret, duration)
+		if err != nil {
+			returnError(err, w, http.StatusInternalServerError)
+			return
+		}
+
+		body := exportBody{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+			Token:     token,
+		}
+
+		jsonData, err := json.Marshal(body)
 		if err != nil {
 			returnError(err, w, http.StatusInternalServerError)
 			return

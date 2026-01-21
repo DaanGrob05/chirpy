@@ -26,6 +26,7 @@ func main() {
 	mux := http.NewServeMux()
 	apiCgf := apiconfig.ApiConfig{
 		DbQueries: dbQueries,
+		Secret:    os.Getenv("SECRET"),
 	}
 
 	mux.Handle("GET /app", apiCgf.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./")))))
@@ -42,6 +43,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", handlers.CreateChirpHandler(&apiCgf))
 	mux.HandleFunc("GET /api/chirps", handlers.GetChirpsHandler(&apiCgf))
 	mux.HandleFunc("GET /api/chirps/{chirpID}", handlers.GetOneChirpHandler(&apiCgf))
+
 	mux.HandleFunc("POST /api/login", handlers.LoginHandler(&apiCgf))
 
 	server := http.Server{

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	apiconfig "example.com/chirpy/api_config"
+	"example.com/chirpy/internal/auth"
 	"example.com/chirpy/internal/database"
 	"example.com/chirpy/logging"
 	"github.com/google/uuid"
@@ -22,6 +23,20 @@ func CreateChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			returnError(err, w, http.StatusBadRequest)
 			return
 		}
+
+		token, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			returnError(err, w, http.StatusUnauthorized)
+			return
+		}
+
+		userId, err := auth.ValidateJWT(token, cfg.Secret)
+		if err != nil {
+			returnError(errors.New("Unauthorized."), w, http.StatusUnauthorized)
+			return
+		}
+
+		createParams.UserID = userId
 
 		createdChirp, err := cfg.DbQueries.CreateChirp(r.Context(), createParams)
 		if err != nil {
@@ -88,6 +103,7 @@ func GetOneChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		jsonData, err := json.Marshal(chirp)
 		if err != nil {
 			returnError(err, w, http.StatusNotFound)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)
