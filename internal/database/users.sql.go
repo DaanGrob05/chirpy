@@ -18,7 +18,7 @@ RETURNING
 
 type CreateUserParams struct {
 	Email          string `json:"email"`
-	HashedPassword string `json:"~"`
+	HashedPassword string `json:"-"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {

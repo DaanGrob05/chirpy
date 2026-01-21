@@ -9,4 +9,4 @@ sql:
         out: "internal/database"
         overrides:
           - column: users.hashed_password
-            go_struct_tag: json:"~"
+            go_struct_tag: 'json:"-"'
