@@ -70,17 +70,17 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		logging.Log("Logging In")
 
 		type parameters struct {
-			Email            string `json:"email"`
-			Password         string `json:"password"`
-			ExpiresInSeconds int    `json:"expires_in_seconds"`
+			Email    string `json:"email"`
+			Password string `json:"password"`
 		}
 
 		type exportBody struct {
-			ID        uuid.UUID `json:"id"`
-			CreatedAt time.Time `json:"created_at"`
-			UpdatedAt time.Time `json:"updated_at"`
-			Email     string    `json:"email"`
-			Token     string    `json:"token"`
+			ID           uuid.UUID `json:"id"`
+			CreatedAt    time.Time `json:"created_at"`
+			UpdatedAt    time.Time `json:"updated_at"`
+			Email        string    `json:"email"`
+			Token        string    `json:"token"`
+			RefreshToken string    `json:"refresh_token"`
 		}
 
 		decoder := json.NewDecoder(r.Body)
@@ -103,28 +103,37 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds >= 3600 {
-			params.ExpiresInSeconds = 3600
-		}
-
-		duration, err := time.ParseDuration(fmt.Sprintf("%vs", params.ExpiresInSeconds))
+		token, err := auth.MakeJWT(user.ID, cfg.Secret, time.Hour)
 		if err != nil {
 			returnError(err, w, http.StatusInternalServerError)
 			return
 		}
 
-		token, err := auth.MakeJWT(user.ID, cfg.Secret, duration)
+		refreshTokenString, err := auth.MakeRefreshToken()
 		if err != nil {
 			returnError(err, w, http.StatusInternalServerError)
-			return
+		}
+
+		durationHours := 60 * 24
+		tokenDuration, err := time.ParseDuration(fmt.Sprintf("%vd", durationHours))
+		refreshTokenParams := database.SaveRefreshTokenParams{
+			Token:     refreshTokenString,
+			UserID:    user.ID,
+			ExpiresAt: time.Now().Add(tokenDuration),
+		}
+
+		refreshToken, err := cfg.DbQueries.SaveRefreshToken(r.Context(), refreshTokenParams)
+		if err != nil {
+			returnError(err, w, http.StatusInternalServerError)
 		}
 
 		body := exportBody{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Email:     user.Email,
-			Token:     token,
+			ID:           user.ID,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
+			Email:        user.Email,
+			Token:        token,
+			RefreshToken: refreshToken.Token,
 		}
 
 		jsonData, err := json.Marshal(body)
