@@ -17,7 +17,7 @@ Run the following script with your db string to get the app up and running:
 
 ```bash
 cd /sql/schema/
-// Use your own db string or this one when running postgres with default settings
+# Use your own db string or this one when running postgres with default settings
 goose postgres postgres://postgres:postgres@localhost:5432/chirpy up
 cd -
 go mod tidy
