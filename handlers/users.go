@@ -115,7 +115,7 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		}
 
 		durationHours := 60 * 24
-		tokenDuration, err := time.ParseDuration(fmt.Sprintf("%vd", durationHours))
+		tokenDuration, err := time.ParseDuration(fmt.Sprintf("%vh", durationHours))
 		refreshTokenParams := database.SaveRefreshTokenParams{
 			Token:     refreshTokenString,
 			UserID:    user.ID,
