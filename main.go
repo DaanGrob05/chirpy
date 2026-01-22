@@ -51,6 +51,9 @@ func main() {
 
 	mux.HandleFunc("POST /api/login", handlers.LoginHandler(&apiCgf))
 
+	mux.HandleFunc("POST /api/refresh", handlers.RefreshJWTHandler(&apiCgf))
+	mux.HandleFunc("POST /api/revoke", handlers.RevokeJWTHandler(&apiCgf))
+
 	server := http.Server{
 		Handler: mux,
 		Addr:    ":8080",

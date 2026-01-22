@@ -103,7 +103,7 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		token, err := auth.MakeJWT(user.ID, cfg.Secret, time.Hour)
+		token, err := auth.MakeJWT(user.ID, cfg.Secret)
 		if err != nil {
 			returnError(err, w, http.StatusInternalServerError)
 			return

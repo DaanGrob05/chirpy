@@ -12,6 +12,40 @@ import (
 	"github.com/google/uuid"
 )
 
+const getUserIdFromRefreshToken = `-- name: GetUserIdFromRefreshToken :one
+SELECT
+  user_id
+FROM
+  refresh_tokens
+WHERE
+  token = $1
+  AND expires_at > now()
+  AND revoked_at IS NULL
+`
+
+func (q *Queries) GetUserIdFromRefreshToken(ctx context.Context, token string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getUserIdFromRefreshToken, token)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+UPDATE
+  refresh_tokens
+SET
+  revoked_at = now(),
+  updated_at = now()
+WHERE
+  token = $1
+  AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, revokeRefreshToken, token)
+	return err
+}
+
 const saveRefreshToken = `-- name: SaveRefreshToken :one
 INSERT INTO refresh_tokens (token, user_id, expires_at)
   VALUES ($1, $2, $3)
