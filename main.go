@@ -21,12 +21,17 @@ func main() {
 		log.Fatal("Can not connect to database.")
 	}
 
+	secret := os.Getenv("SECRET")
+	if secret == "" {
+		log.Fatal("Env variable 'SECRET' has no value.")
+	}
+
 	dbQueries := database.New(db)
 
 	mux := http.NewServeMux()
 	apiCgf := apiconfig.ApiConfig{
 		DbQueries: dbQueries,
-		Secret:    os.Getenv("SECRET"),
+		Secret:    secret,
 	}
 
 	mux.Handle("GET /app", apiCgf.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./")))))
