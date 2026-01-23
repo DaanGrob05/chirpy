@@ -24,3 +24,18 @@ WHERE
   token = $1
   AND revoked_at IS NULL;
 
+-- name: GetUserFromRefreshToken :one
+SELECT
+  u.id,
+  u.email,
+  u.created_at,
+  u.updated_at,
+  u.hashed_password
+FROM
+  users u
+  INNER JOIN refresh_tokens r ON u.id = r.user_id
+WHERE
+  r.token = $1
+  AND expires_at > now()
+  AND revoked_at IS NULL;
+

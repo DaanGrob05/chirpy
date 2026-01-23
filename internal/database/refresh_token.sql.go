@@ -12,6 +12,43 @@ import (
 	"github.com/google/uuid"
 )
 
+const getUserFromRefreshToken = `-- name: GetUserFromRefreshToken :one
+SELECT
+  u.id,
+  u.email,
+  u.created_at,
+  u.updated_at,
+  u.hashed_password
+FROM
+  users u
+  INNER JOIN refresh_tokens r ON u.id = r.user_id
+WHERE
+  r.token = $1
+  AND expires_at > now()
+  AND revoked_at IS NULL
+`
+
+type GetUserFromRefreshTokenRow struct {
+	ID             uuid.UUID `json:"id"`
+	Email          string    `json:"email"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	HashedPassword string    `json:"-"`
+}
+
+func (q *Queries) GetUserFromRefreshToken(ctx context.Context, token string) (GetUserFromRefreshTokenRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserFromRefreshToken, token)
+	var i GetUserFromRefreshTokenRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.HashedPassword,
+	)
+	return i, err
+}
+
 const getUserIdFromRefreshToken = `-- name: GetUserIdFromRefreshToken :one
 SELECT
   user_id

@@ -147,3 +147,59 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		w.Write(jsonData)
 	}
 }
+
+func UpdateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		type parameters struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+
+		decoder := json.NewDecoder(r.Body)
+		params := parameters{}
+		err := decoder.Decode(&params)
+		if err != nil || params.Email == "" || params.Password == "" {
+			returnError(err, w, http.StatusBadRequest)
+			return
+		}
+
+		bearer, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			returnError(err, w, http.StatusUnauthorized)
+			return
+		}
+
+		userId, err := auth.ValidateJWT(bearer, cfg.Secret)
+		if err != nil {
+			returnError(err, w, http.StatusUnauthorized)
+		}
+
+		hashedPassword, err := auth.HashPassword(params.Password)
+		if err != nil {
+			returnError(err, w, http.StatusInternalServerError)
+			return
+		}
+
+		updateParams := database.UpdateUserCredentialsParams{
+			ID:             userId,
+			Email:          params.Email,
+			HashedPassword: hashedPassword,
+		}
+
+		updatedUser, err := cfg.DbQueries.UpdateUserCredentials(r.Context(), updateParams)
+		if err != nil {
+			returnError(err, w, http.StatusInternalServerError)
+			return
+		}
+
+		jsonData, err := json.Marshal(updatedUser)
+		if err != nil {
+			returnError(err, w, http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonData)
+	}
+}
