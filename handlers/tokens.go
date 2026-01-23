@@ -16,7 +16,7 @@ func RefreshJWTHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			Token string `json:"token"`
 		}
 
-		bearer, err := auth.GetBearerToken(r.Header)
+		bearer, err := auth.GetTokenFromHeader(r.Header, "Bearer ")
 		if err != nil {
 			returnError(err, w, http.StatusUnauthorized)
 			return
@@ -56,7 +56,7 @@ func RevokeJWTHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			Token string `json:"token"`
 		}
 
-		bearer, err := auth.GetBearerToken(r.Header)
+		bearer, err := auth.GetTokenFromHeader(r.Header, "Bearer ")
 		if err != nil {
 			returnError(err, w, http.StatusUnauthorized)
 			return

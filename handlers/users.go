@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	apiconfig "example.com/chirpy/api_config"
@@ -166,7 +167,7 @@ func UpdateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		bearer, err := auth.GetBearerToken(r.Header)
+		bearer, err := auth.GetTokenFromHeader(r.Header, "Bearer ")
 		if err != nil {
 			returnError(err, w, http.StatusUnauthorized)
 			return
@@ -226,6 +227,12 @@ func UpgradeUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 
 		if params.Event != "user.upgraded" {
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		apiKey, err := auth.GetTokenFromHeader(r.Header, "ApiKey ")
+		if err != nil || apiKey != os.Getenv("POLKA_KEY") {
+			returnError(err, w, http.StatusUnauthorized)
 			return
 		}
 

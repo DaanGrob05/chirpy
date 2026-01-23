@@ -25,7 +25,7 @@ func CreateChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		token, err := auth.GetBearerToken(r.Header)
+		token, err := auth.GetTokenFromHeader(r.Header, "Bearer ")
 		if err != nil {
 			returnError(err, w, http.StatusUnauthorized)
 			return
@@ -127,7 +127,7 @@ func DeleteChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			return
 		}
 
-		bearer, err := auth.GetBearerToken(r.Header)
+		bearer, err := auth.GetTokenFromHeader(r.Header, "Bearer ")
 		if err != nil {
 			returnError(err, w, http.StatusUnauthorized)
 			return
