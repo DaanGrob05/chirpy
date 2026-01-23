@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -109,5 +110,60 @@ func GetOneChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonData)
+	}
+}
+
+func DeleteChirpHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		chirpIdString := r.PathValue("chirpID")
+		if chirpIdString == "" {
+			returnError(errors.New("Incorrect or empty id value."), w, http.StatusBadRequest)
+			return
+		}
+
+		chirpId, err := uuid.Parse(chirpIdString)
+		if err != nil {
+			returnError(err, w, http.StatusNotFound)
+			return
+		}
+
+		bearer, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			returnError(err, w, http.StatusUnauthorized)
+			return
+		}
+
+		userId, err := auth.ValidateJWT(bearer, cfg.Secret)
+		if err != nil {
+			returnError(err, w, http.StatusUnauthorized)
+			return
+		}
+
+		chirp, err := cfg.DbQueries.GetOneChirp(r.Context(), chirpId)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				returnError(errors.New("Chirp not found."), w, http.StatusNotFound)
+				return
+			}
+
+			returnError(err, w, http.StatusInternalServerError)
+			return
+		}
+
+		if chirp.UserID != userId {
+			returnError(errors.New("Forbidden."), w, http.StatusForbidden)
+			return
+		}
+
+		deleteParams := database.DeleteChirpParams{
+			ID:     chirpId,
+			UserID: userId,
+		}
+		err = cfg.DbQueries.DeleteChirp(r.Context(), deleteParams)
+		if err != nil {
+			returnError(err, w, http.StatusForbidden)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
