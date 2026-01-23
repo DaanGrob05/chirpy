@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,6 +82,7 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			Email        string    `json:"email"`
 			Token        string    `json:"token"`
 			RefreshToken string    `json:"refresh_token"`
+			IsChirpyRed  bool      `json:"is_chirpy_red"`
 		}
 
 		decoder := json.NewDecoder(r.Body)
@@ -134,6 +136,7 @@ func LoginHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 			Email:        user.Email,
 			Token:        token,
 			RefreshToken: refreshToken.Token,
+			IsChirpyRed:  user.IsChirpyRed,
 		}
 
 		jsonData, err := json.Marshal(body)
@@ -201,5 +204,46 @@ func UpdateUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonData)
+	}
+}
+
+func UpgradeUserHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		type parameters struct {
+			Event string `json:"event"`
+			Data  struct {
+				UserID string `json:"user_id"`
+			} `json:"data"`
+		}
+
+		decoder := json.NewDecoder(r.Body)
+		params := parameters{}
+		err := decoder.Decode(&params)
+		if err != nil {
+			returnError(err, w, http.StatusBadRequest)
+			return
+		}
+
+		if params.Event != "user.upgraded" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		userId, err := uuid.Parse(params.Data.UserID)
+		if err != nil {
+			returnError(err, w, http.StatusBadRequest)
+			return
+		}
+
+		_, err = cfg.DbQueries.UpgradeUser(r.Context(), userId)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				returnError(errors.New("User not found."), w, http.StatusNotFound)
+				return
+			}
+			returnError(err, w, http.StatusInternalServerError)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

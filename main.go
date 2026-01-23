@@ -56,6 +56,8 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", handlers.RefreshJWTHandler(&apiCgf))
 	mux.HandleFunc("POST /api/revoke", handlers.RevokeJWTHandler(&apiCgf))
 
+	mux.HandleFunc("POST /api/polka/webhooks", handlers.UpgradeUserHandler(&apiCgf))
+
 	server := http.Server{
 		Handler: mux,
 		Addr:    ":8080",
