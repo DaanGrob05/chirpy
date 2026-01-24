@@ -61,10 +61,27 @@ func GetChirpsHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logging.Log("Getting Chirps")
 
-		data, err := cfg.DbQueries.GetChirps(r.Context())
-		if err != nil {
-			returnError(err, w, http.StatusInternalServerError)
-			return
+		authorIdString := r.URL.Query().Get("author_id")
+		var data []database.Chirp
+		var err error
+
+		if authorIdString == "" {
+			data, err = cfg.DbQueries.GetChirps(r.Context())
+			if err != nil {
+				returnError(err, w, http.StatusInternalServerError)
+				return
+			}
+		} else {
+			authorId, err := uuid.Parse(authorIdString)
+			if err != nil {
+				returnError(err, w, http.StatusBadRequest)
+				return
+			}
+			data, err = cfg.DbQueries.GetChirpsByUser(r.Context(), authorId)
+			if err != nil {
+				returnError(err, w, http.StatusInternalServerError)
+				return
+			}
 		}
 
 		jsonData, err := json.Marshal(data)
