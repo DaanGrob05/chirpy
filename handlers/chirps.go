@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 
 	apiconfig "example.com/chirpy/api_config"
 	"example.com/chirpy/internal/auth"
@@ -62,6 +63,8 @@ func GetChirpsHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 		logging.Log("Getting Chirps")
 
 		authorIdString := r.URL.Query().Get("author_id")
+		sortOrder := r.URL.Query().Get("sort")
+
 		var data []database.Chirp
 		var err error
 
@@ -83,6 +86,14 @@ func GetChirpsHandler(cfg *apiconfig.ApiConfig) http.HandlerFunc {
 				return
 			}
 		}
+
+		slices.SortFunc(data, func(a, b database.Chirp) int {
+			cmp := a.CreatedAt.Compare(b.CreatedAt)
+			if sortOrder == "desc" {
+				return -cmp
+			}
+			return cmp
+		})
 
 		jsonData, err := json.Marshal(data)
 		if err != nil {
